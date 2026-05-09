@@ -1,5 +1,5 @@
 mod app;
-mod komunikacja;
+mod communication;
 
 fn main() {
     let native_options = eframe::NativeOptions::default();

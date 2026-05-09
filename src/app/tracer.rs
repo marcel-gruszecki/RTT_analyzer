@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use crate::komunikacja::{TaskDatabase, TracerSession};
+use crate::communication::{TaskDatabase, TracerSession};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ConnectionStatus {

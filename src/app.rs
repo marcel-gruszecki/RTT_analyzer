@@ -4,7 +4,7 @@ mod ui;
 use std::time::Duration;
 
 use eframe::egui;
-use crate::komunikacja::{run_all, SchedulingResult, TaskExecution, TaskScheduleData};
+use crate::communication::{run_all, run_one, SchedulingResult, TaskExecution, TaskScheduleData};
 
 use tracer::{ConnectionStatus, TracerHandle};
 
@@ -72,13 +72,23 @@ impl eframe::App for MyEguiApp {
                 ui::task_panel::show_task_panel(ctx, &completed, &schedule_data);
             }
             ui::top_panel::PANEL::ANALYSIS => {
-                let run_clicked = ui::analysis_panel::show_analysis_panel(
+                let action = ui::analysis_panel::show_analysis_panel(
                     ctx,
                     &mut self.analysis_struct,
                     &self.scheduling_results,
                 );
-                if run_clicked && !completed.is_empty() {
-                    self.scheduling_results = run_all(&completed);
+                match action {
+                    ui::analysis_panel::AnalysisAction::RunAll => {
+                        if !completed.is_empty() {
+                            self.scheduling_results = run_all(&completed);
+                        }
+                    }
+                    ui::analysis_panel::AnalysisAction::RunSelected(idx) => {
+                        if !completed.is_empty() {
+                            self.scheduling_results = vec![run_one(&completed, idx)];
+                        }
+                    }
+                    ui::analysis_panel::AnalysisAction::None => {}
                 }
             }
         }

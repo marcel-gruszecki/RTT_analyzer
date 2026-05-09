@@ -1,33 +1,41 @@
 use eframe::egui;
 use egui_plot::{Bar, BarChart, Plot};
 
-use crate::komunikacja::SchedulingResult;
+use crate::communication::SchedulingResult;
 
-/// Which algorithm's Gantt to display.
+/// Wariant algorytmu — indeks zgodny z `run_all`/`run_one`.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub enum ALGO {
     #[default]
-    McNaughton,
-    LPT,
-    SplitSpdp,
+    GreedySpdp,
+    SplitOff,
+    DuLeung1989,
 }
 
 impl ALGO {
     fn label(&self) -> &'static str {
         match self {
-            ALGO::McNaughton => "McNaughton",
-            ALGO::LPT        => "LPT",
-            ALGO::SplitSpdp  => "Split spdp-any",
+            ALGO::GreedySpdp  => "GreedySpdp",
+            ALGO::SplitOff    => "SplitOff",
+            ALGO::DuLeung1989 => "DuLeung1989",
         }
     }
 
-    fn index(&self) -> usize {
+    pub fn index(&self) -> usize {
         match self {
-            ALGO::McNaughton => 0,
-            ALGO::LPT        => 1,
-            ALGO::SplitSpdp  => 2,
+            ALGO::GreedySpdp  => 0,
+            ALGO::SplitOff    => 1,
+            ALGO::DuLeung1989 => 2,
         }
     }
+}
+
+/// Akcja wyboru przez użytkownika w panelu analizy.
+#[derive(Clone, Debug)]
+pub enum AnalysisAction {
+    None,
+    RunAll,
+    RunSelected(usize),
 }
 
 #[derive(Debug, Default)]
@@ -35,13 +43,12 @@ pub struct AnalysisPanel {
     radio: ALGO,
 }
 
-/// Returns `true` when the user clicks "Uruchom analizę".
 pub fn show_analysis_panel(
     ctx: &egui::Context,
     state: &mut AnalysisPanel,
     results: &[SchedulingResult],
-) -> bool {
-    let mut run_clicked = false;
+) -> AnalysisAction {
+    let mut action = AnalysisAction::None;
 
     egui::CentralPanel::default().show(ctx, |ui| {
         ui.label(egui::RichText::new("Harmonogramowanie — wyniki").strong());
@@ -49,30 +56,33 @@ pub fn show_analysis_panel(
 
         // ── Control row ───────────────────────────────────────────────────────
         ui.horizontal(|ui| {
-            if ui.button("▶ Uruchom analizę").clicked() {
-                run_clicked = true;
+            if ui.button("▶ Uruchom wszystkie").clicked() {
+                action = AnalysisAction::RunAll;
+            }
+            if ui.button("▶ Tylko wybrany").clicked() {
+                action = AnalysisAction::RunSelected(state.radio.index());
             }
             ui.separator();
-            egui::ComboBox::from_label("Algorytm Gantt")
+            egui::ComboBox::from_label("Algorytm")
                 .selected_text(state.radio.label())
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut state.radio, ALGO::McNaughton, "McNaughton");
-                    ui.selectable_value(&mut state.radio, ALGO::LPT,        "LPT");
-                    ui.selectable_value(&mut state.radio, ALGO::SplitSpdp,  "Split spdp-any");
+                    ui.selectable_value(&mut state.radio, ALGO::GreedySpdp,  "GreedySpdp");
+                    ui.selectable_value(&mut state.radio, ALGO::SplitOff,    "SplitOff");
+                    ui.selectable_value(&mut state.radio, ALGO::DuLeung1989, "DuLeung1989 (opt)");
                 });
         });
 
         ui.separator();
 
         if results.is_empty() {
-            ui.label("Brak wynikow. Zbierz dane i kliknij 'Uruchom analize'.");
+            ui.label("Brak wynikow. Zbierz dane i kliknij 'Uruchom wszystkie' lub 'Tylko wybrany'.");
             return;
         }
 
         // ── Results table ─────────────────────────────────────────────────────
-        let col_w = (ui.available_width() / 4.0).max(90.0);
+        let col_w = (ui.available_width() / 5.0).max(90.0);
         egui::Grid::new("results_table").striped(true).show(ui, |ui| {
-            for h in &["Algorytm", "Cmax [µs]", "Bazowy [µs]", "Poprawa"] {
+            for h in &["Algorytm", "Cmax [µs]", "Bazowy [µs]", "Poprawa", "Czas algorytmu"] {
                 ui.add_sized(
                     [col_w, 20.0],
                     egui::Label::new(egui::RichText::new(*h).strong()),
@@ -102,6 +112,10 @@ pub fn show_analysis_panel(
                         egui::RichText::new(format!("{:+.1}%", imp)).color(color),
                     ),
                 );
+                ui.add_sized(
+                    [col_w, 20.0],
+                    egui::Label::new(format_duration_ns(r.algo_time_ns)),
+                );
                 ui.end_row();
             }
         });
@@ -109,11 +123,13 @@ pub fn show_analysis_panel(
         ui.separator();
 
         // ── Gantt for selected algorithm ──────────────────────────────────────
-        let idx = state.radio.index();
-        if let Some(result) = results.get(idx) {
+        let selected_label = state.radio.label();
+        if let Some(result) = results.iter().find(|r| r.algorithm == selected_label) {
             ui.label(format!(
-                "Diagram Gantta -- {} (Cmax ~{:.0} us)",
-                result.algorithm, result.cmax_us
+                "Diagram Gantta — {} (Cmax ~{:.0} µs, czas algo {})",
+                result.algorithm,
+                result.cmax_us,
+                format_duration_ns(result.algo_time_ns)
             ));
 
             let bars: Vec<Bar> = result
@@ -149,10 +165,28 @@ pub fn show_analysis_panel(
                             plot_ui.bar_chart(chart);
                         });
                 });
+        } else {
+            ui.label(format!(
+                "Brak wyniku dla '{}'. Kliknij 'Uruchom wszystkie' lub 'Tylko wybrany'.",
+                selected_label
+            ));
         }
     });
 
-    run_clicked
+    action
+}
+
+/// Formatuje czas trwania w przyjaznych jednostkach (ns / µs / ms / s).
+fn format_duration_ns(ns: u128) -> String {
+    if ns < 1_000 {
+        format!("{} ns", ns)
+    } else if ns < 1_000_000 {
+        format!("{:.2} µs", ns as f64 / 1_000.0)
+    } else if ns < 1_000_000_000 {
+        format!("{:.2} ms", ns as f64 / 1_000_000.0)
+    } else {
+        format!("{:.2} s", ns as f64 / 1_000_000_000.0)
+    }
 }
 
 fn name_color(name: &str) -> egui::Color32 {

@@ -1,7 +1,7 @@
 use eframe::egui;
 use egui_plot::{Bar, BarChart, Plot, PlotBounds, PlotPoint, Text};
 
-use crate::komunikacja::{TaskExecution, TaskScheduleData};
+use crate::communication::{TaskExecution, TaskScheduleData};
 
 /// Visible time window on the Gantt (5 seconds).
 const WINDOW_US: u64 = 5_000_000;
