@@ -5,7 +5,7 @@ ESP32-P4 (FreeRTOS SMP, 2 rdzenie). Czyta dane śladu z urządzenia przez JTAG,
 paruje zdarzenia w wykonania zadań i uruchamia algorytmy harmonogramowania
 porównując je z rzeczywistym przypisaniem przez OS.
 
-## Co robi
+## Działanie aplikacji
 
 1. Łączy się z ESP32-P4 przez JTAG (`probe-rs`).
 2. Czyta pakiety `SWITCHED_IN`/`SWITCHED_OUT` z kanału SEGGER RTT (kanał 1).
@@ -13,7 +13,7 @@ porównując je z rzeczywistym przypisaniem przez OS.
 4. Po kliknięciu przycisku oblicza Cmax dla wybranych algorytmów i mierzy
    czas ich wykonania.
 5. Wyświetla tabelę wyników (Cmax, baseline, poprawa, czas algorytmu)
-   i diagram Gantta wybranego algorytmu.
+   i wykres Gantta wybranego algorytmu.
 
 ## Uruchomienie
 
@@ -28,18 +28,39 @@ Wymaga:
 ## Algorytmy
 
 Wszystkie rozwiązują problem **P | pmtn, spdp-any | Cmax** (preempcja, M=2,
-zadanie może iść w trybie 1- lub 2-rdzeniowym; w trybie 2-rdz. czas ścienny
-to `LIN_FACTOR · p_j` na obu rdzeniach jednocześnie, `LIN_FACTOR = 0.6`).
+zadanie może iść w trybie 1- lub 2-rdzeniowym;
 
-| Algorytm        | Złożoność   | Optymalność |
-|-----------------|-------------|-------------|
-| **GreedySpdp**  | `O(n²)`     | heurystyk — może utknąć w lokalnym minimum |
-| **SplitOff**    | `O(n²)`     | heurystyk — McNaughton-guided offload |
-| **DuLeung1989** | `O(n · 2ⁿ)` | **OPTYMALNY** — Du, Leung 1989, Theorem 6 |
+| Algorytm        | Złożoność   | Optymalność                                 |
+|-----------------|-------------|---------------------------------------------|
+| **GreedySpdp**  | `O(n²)`     | heurystyka — może utknąć w lokalnym minimum |
+| **SplitOff**    | `O(n²)`     | heurystyka — McNaughton-guided offload      |
+| **DuLeung1989** | `O(n · 2ⁿ)` | **OPTYMALNY** — Du, Leung 1989              | 
 
 Du-Leung enumeruje wszystkie `2ⁿ` przypisań trybów (S2 ⊆ zadań) i dla każdego
 oblicza optymalny preempcyjny Cmax (formuła Blazewicza). Dla `n ≤ 22`
 praktyczny; dla większych `n` aplikacja robi fallback do `SplitOff`.
+
+## Działanie algorytmów
+
+Niech:
+- `S1` = zbiór zadań w trybie **1-rdzeniowym** (każde zajmuje 1 rdzeń),
+- `S2` = zbiór zadań w trybie **2-rdzeniowym** (każde zajmuje OBA rdzenie).
+
+### 1. GreedySpdp
+Zacznij od wszystkich zadań w S1. W każdej iteracji znajdź zadanie, którego przeniesienie do S2 najbardziej
+zmniejsza Cmax. Jeśli żaden ruch nie poprawia — zakończ.
+
+### 2. SplitOff
+
+Zamiast rozważać dowolne ruchy, koncentruj się na zadaniu, które
+przekracza granicę `Cmax_S1` na rdzeniu 0 i musi być przerwane.
+Takie zadanie jest naturalnym wąskim gardłem; jego przeniesienie do S2
+często skraca harmonogram.
+
+### 3. DuLeung1989
+Przestrzeń możliwych przypisań to po prostu `2^n` podziałów
+`{1..n}` na `(S1, S2)`, to przy małych `n` można ją *przeszukać w całości*.
+Każdy podział oceniamy formułą `Cmax(S1, S2)`, bierzemy minimum.
 
 ## UI
 
@@ -52,7 +73,7 @@ W panelu analizy są dwa przyciski:
 Tabela wyników ma kolumny:
 - Algorytm, Cmax [µs], Bazowy [µs], Poprawa, **Czas algorytmu** (ns/µs/ms/s).
 
-Pod tabelą diagram Gantta dla aktualnie wybranego algorytmu.
+Pod tabelą wykres Gantta dla aktualnie wybranego algorytmu.
 
 ## Struktura
 
