@@ -1,3 +1,13 @@
+/**
+ * @file task_tracer.h
+ * @brief Biblioteka Telemetrii FreeRTOS dla ESP32-P4 - Plik Nagłówkowy
+ *
+ * Projekt: RTT-Task Analyser
+ * Autor: Marcel Gruszecki (UAM)
+ * Opis: Definiuje binarny format ramki sieciowej (34 bajty) przesyłanej przez JTAG/RTT
+ * oraz sygnatury funkcji rejestrujących przełączenia kontekstu we FreeRTOS.
+ */
+
 #pragma once
 #include <stdint.h>
 
@@ -5,37 +15,46 @@
 extern "C" {
 #endif
 
-// Packet framing bytes (scan for these to find packet boundaries)
+/* Bajty synchronizacji ramki binarnej */
 #define TRACER_MAGIC_0      0xAB
 #define TRACER_MAGIC_1      0xCD
 
-// Maximum task name length — must match configMAX_TASK_NAME_LEN in FreeRTOSConfig.h
+/* Maksymalna długość nazwy zadania (zgodna z configMAX_TASK_NAME_LEN we FreeRTOS) */
 #define TRACER_NAME_LEN     16
 
+/**
+ * @brief Typy zdarzeń przełączenia kontekstu zadań.
+ */
 typedef enum __attribute__((packed)) {
-    TRACER_EVT_SWITCHED_IN  = 0x01,  // task started executing
-    TRACER_EVT_SWITCHED_OUT = 0x02,  // task stopped executing (preempted or blocked)
+    TRACER_EVT_SWITCHED_IN  = 0x01,  /* Rozpoczęcie wykonywania zadania */
+    TRACER_EVT_SWITCHED_OUT = 0x02,  /* Wstrzymanie lub wywłaszczenie zadania */
 } tracer_evt_t;
 
-// Wire format — 34 bytes total, all fields little-endian
+/**
+ * @brief Struktura surowego pakietu telemetrycznego (format zgodny z dekoderem w Rust).
+ */
 typedef struct __attribute__((packed)) {
-    uint8_t      magic[2];           // {0xAB, 0xCD}
-    uint8_t      type;               // tracer_evt_t
-    uint8_t      core_id;            // 0 or 1 (ESP32-P4 is dual-core)
-    uint8_t      priority;           // FreeRTOS task priority
-    uint32_t     task_id;            // TCB pointer cast to uint32_t — unique per task instance
-    char         name[TRACER_NAME_LEN]; // null-terminated task name
-    uint64_t     timestamp_us;       // microseconds since boot (esp_timer_get_time)
-    uint8_t      checksum;           // XOR of all preceding bytes
+    uint8_t      magic[2];              /* Sekwencja startowa {0xAB, 0xCD} */
+    uint8_t      type;                  /* Typ zdarzenia (tracer_evt_t) */
+    uint8_t      core_id;               /* Identyfikator rdzenia (0 lub 1) */
+    uint8_t      priority;              /* Bieżący priorytet zadania FreeRTOS */
+    uint32_t     task_id;               /* Unikalny identyfikator (wskaźnik na TCB) */
+    char         name[TRACER_NAME_LEN]; /* Nazwa zadania (zakończona zerem) */
+    uint64_t     timestamp_us;          /* Czas od uruchomienia systemu w mikrosekundach */
+    uint8_t      checksum;              /* Suma kontrolna XOR wszystkich poprzednich bajtów */
 } tracer_packet_t;
 
-// Call once before starting the FreeRTOS scheduler.
-// Configures the SEGGER RTT up-buffer on channel 1.
-// probe-rs polls this buffer directly over JTAG — no sender task needed.
+/**
+ * @brief Inicjalizuje bufor kołowy SEGGER RTT na kanale 1.
+ * * Funkcja musi być wywołana jednorazowo przed uruchomieniem planisty (schedulera) FreeRTOS.
+ */
 void tracer_init(void);
 
-// Called automatically by FreeRTOS trace hooks — also usable manually.
-// ISR-safe (uses a spinlock + ring buffer; never blocks).
+/**
+ * @brief Rejestruje zdarzenie przełączenia kontekstu i zapisuje je do bufora RTT.
+ * * Funkcja jest bezpieczna do wywołania wewnątrz przerwań (ISR-safe), nieblokująca
+ * oraz chroniona za pomocą blokady spinlock.
+ */
 void tracer_record(tracer_evt_t type, const char *name,
                    uint8_t core_id, uint8_t priority);
 

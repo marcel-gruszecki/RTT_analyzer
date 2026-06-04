@@ -1,9 +1,18 @@
+//! # Panel Analizy Porównawczej Algorytmów
+//!
+//! Projekt: RTT-Task Analyser
+//! Autor: Marcel Gruszecki (UAM)
+//! Moduł: `app::ui::analysis_panel`
+//! Opis: Implementuje widok analityczny aplikacji. Odpowiada za renderowanie tabeli
+//!       wyników (Makespan, zysk procentowy, czas obliczeniowy) oraz wizualizację
+//!       wyjściowych harmonogramów na interaktywnym wykresie Gantta.
+
 use eframe::egui;
 use egui_plot::{Bar, BarChart, Plot};
 
 use crate::communication::SchedulingResult;
 
-/// Wariant algorytmu — indeks zgodny z `run_all`/`run_one`.
+/// Warianty algorytmów szeregowania obsługiwane przez interfejs.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub enum ALGO {
     #[default]
@@ -30,7 +39,7 @@ impl ALGO {
     }
 }
 
-/// Akcja wyboru przez użytkownika w panelu analizy.
+/// Akcje wyboru operacji matematyczno-obliczeniowych przez użytkownika.
 #[derive(Clone, Debug)]
 pub enum AnalysisAction {
     None,
@@ -38,11 +47,13 @@ pub enum AnalysisAction {
     RunSelected(usize),
 }
 
+/// Struktura przechowująca stan komponentów wyboru w panelu analizy.
 #[derive(Debug, Default)]
 pub struct AnalysisPanel {
     radio: ALGO,
 }
 
+/// Główna funkcja renderująca panel wyników i wykresy Gantta.
 pub fn show_analysis_panel(
     ctx: &egui::Context,
     state: &mut AnalysisPanel,
@@ -54,7 +65,7 @@ pub fn show_analysis_panel(
         ui.label(egui::RichText::new("Harmonogramowanie — wyniki").strong());
         ui.separator();
 
-        // ── Control row ───────────────────────────────────────────────────────
+        // Menu kontrolne: Przyciski uruchamiania i lista wyboru algorytmu
         ui.horizontal(|ui| {
             if ui.button("▶ Uruchom wszystkie").clicked() {
                 action = AnalysisAction::RunAll;
@@ -75,11 +86,11 @@ pub fn show_analysis_panel(
         ui.separator();
 
         if results.is_empty() {
-            ui.label("Brak wynikow. Zbierz dane i kliknij 'Uruchom wszystkie' lub 'Tylko wybrany'.");
+            ui.label("Brak wyników. Zbierz dane i kliknij 'Uruchom wszystkie' lub 'Tylko wybrany'.");
             return;
         }
 
-        // ── Results table ─────────────────────────────────────────────────────
+        // Siatka (Grid) prezentująca zbiorcze zestawienie metryk wydajnościowych
         let col_w = (ui.available_width() / 5.0).max(90.0);
         egui::Grid::new("results_table").striped(true).show(ui, |ui| {
             for h in &["Algorytm", "Cmax [µs]", "Bazowy [µs]", "Poprawa", "Czas algorytmu"] {
@@ -98,31 +109,20 @@ pub fn show_analysis_panel(
                     egui::Color32::RED
                 };
                 ui.add_sized([col_w, 20.0], egui::Label::new(r.algorithm));
+                ui.add_sized([col_w, 20.0], egui::Label::new(format!("{:.0}", r.cmax_us)));
+                ui.add_sized([col_w, 20.0], egui::Label::new(format!("{:.0}", r.baseline_us)));
                 ui.add_sized(
                     [col_w, 20.0],
-                    egui::Label::new(format!("{:.0}", r.cmax_us)),
+                    egui::Label::new(egui::RichText::new(format!("{:+.1}%", imp)).color(color)),
                 );
-                ui.add_sized(
-                    [col_w, 20.0],
-                    egui::Label::new(format!("{:.0}", r.baseline_us)),
-                );
-                ui.add_sized(
-                    [col_w, 20.0],
-                    egui::Label::new(
-                        egui::RichText::new(format!("{:+.1}%", imp)).color(color),
-                    ),
-                );
-                ui.add_sized(
-                    [col_w, 20.0],
-                    egui::Label::new(format_duration_ns(r.algo_time_ns)),
-                );
+                ui.add_sized([col_w, 20.0], egui::Label::new(format_duration_ns(r.algo_time_ns)));
                 ui.end_row();
             }
         });
 
         ui.separator();
 
-        // ── Gantt for selected algorithm ──────────────────────────────────────
+        // Renderowanie geometrycznego diagramu Gantta dla aktualnie wskazanego algorytmu
         let selected_label = state.radio.label();
         if let Some(result) = results.iter().find(|r| r.algorithm == selected_label) {
             ui.label(format!(
@@ -132,6 +132,7 @@ pub fn show_analysis_panel(
                 format_duration_ns(result.algo_time_ns)
             ));
 
+            // Mapowanie wycinków czasowych (Segment) na poziome słupki wykresu
             let bars: Vec<Bar> = result
                 .segments
                 .iter()
@@ -176,7 +177,7 @@ pub fn show_analysis_panel(
     action
 }
 
-/// Formatuje czas trwania w przyjaznych jednostkach (ns / µs / ms / s).
+// Formatowanie jednostek czasu wykonania kodu (od nanosekund do sekund)
 fn format_duration_ns(ns: u128) -> String {
     if ns < 1_000 {
         format!("{} ns", ns)
@@ -189,6 +190,7 @@ fn format_duration_ns(ns: u128) -> String {
     }
 }
 
+// Deterministyczny generator unikalnego koloru RGB na bazie haszowania nazwy zadania
 fn name_color(name: &str) -> egui::Color32 {
     let hash = name
         .bytes()

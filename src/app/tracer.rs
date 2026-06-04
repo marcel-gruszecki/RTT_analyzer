@@ -1,3 +1,12 @@
+//! # Wielowątkowy Uchwyt i Zarządca Sesji Telemetrii
+//!
+//! Projekt: RTT-Task Analyser
+//! Autor: Marcel Gruszecki (UAM)
+//! Moduł: `app::tracer`
+//! Opis: Implementuje wielowątkowy mechanizm kontroli sesji sprzętowej.
+//!       Uruchamia asynchroniczny wątek tła, który cyklicznie odpytuje układ przez JTAG,
+//!       aktualizuje stan połączenia oraz zapisuje odebrane zdarzenia do współdzielonej bazy danych.
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -5,6 +14,7 @@ use std::time::Duration;
 
 use crate::communication::{TaskDatabase, TracerSession};
 
+/// Reprezentuje bieżący stan połączenia z mikrokontrolerem.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ConnectionStatus {
     Disconnected,
@@ -13,6 +23,7 @@ pub enum ConnectionStatus {
     Error(String),
 }
 
+/// Bezpieczny wielowątkowo uchwyt sterujący sesją odczytu telemetrii w tle.
 pub struct TracerHandle {
     pub db: Arc<Mutex<TaskDatabase>>,
     status: Arc<Mutex<ConnectionStatus>>,
@@ -28,8 +39,7 @@ impl TracerHandle {
         }
     }
 
-    /// Spawn a background thread that connects to `chip` and streams events
-    /// into the shared database.
+    /// Inicjalizuje nową bazę danych i uruchamia wątek tła łączący się z mikrokontrolerem.
     pub fn connect(&mut self, chip: &str) {
         self.stop_flag.store(false, Ordering::SeqCst);
         *self.db.lock().unwrap() = TaskDatabase::new();
@@ -47,11 +57,11 @@ impl TracerHandle {
                 }
                 Ok(mut session) => {
                     *status.lock().unwrap() = ConnectionStatus::Connected;
+                    // Główna pętla asynchronicznego odczytu strumienia RTT
                     while !stop.load(Ordering::SeqCst) {
                         match session.read_events() {
                             Err(e) => {
-                                *status.lock().unwrap() =
-                                    ConnectionStatus::Error(e.to_string());
+                                *status.lock().unwrap() = ConnectionStatus::Error(e.to_string());
                                 break;
                             }
                             Ok(events) => {
@@ -61,6 +71,8 @@ impl TracerHandle {
                                     db_lock.push_event(event);
                                 }
                                 drop(db_lock);
+
+                                // Jeśli brak nowych danych, usypiamy wątek na 10ms, oszczędzając CPU
                                 if !had_events {
                                     thread::sleep(Duration::from_millis(10));
                                 }
@@ -72,12 +84,13 @@ impl TracerHandle {
         });
     }
 
-    /// Signal the background thread to stop and mark status as disconnected.
+    /// Wysyła sygnał żądania stopu do wątku tła i oznacza status jako rozłączony.
     pub fn disconnect(&self) {
         self.stop_flag.store(true, Ordering::SeqCst);
         *self.status.lock().unwrap() = ConnectionStatus::Disconnected;
     }
 
+    /// Pobiera bezpieczną kopię aktualnego statusu połączenia.
     pub fn status(&self) -> ConnectionStatus {
         self.status.lock().unwrap().clone()
     }

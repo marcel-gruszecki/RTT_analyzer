@@ -1,14 +1,20 @@
-idf_component_register(
-    SRCS        "task_tracer.c"
-    INCLUDE_DIRS "."
-    REQUIRES    freertos esp_timer esp_hw_support
-)
+# # CMakeLists.txt — Konfiguracja Komponentu ESP-IDF
+#
+# Projekt: RTT-Task Analyser
+# Autor: Marcel Gruszecki (UAM)
+# Moduł: `esp32_tracer::CMakeLists`
+# Opis: Skrypt budujący systemu CMake dla środowiska ESP-IDF.
+#       Rejestruje pliki telemetrii oraz dołączoną lokalnie bibliotekę SEGGER RTT,
+#       definiując zależności od podsystemów FreeRTOS i timerów sprzętowych.
 
-# SEGGER RTT — add the two source files directly from the SDK.
-# Adjust the path if your ESP-IDF is in a different location.
-set(RTT_DIR "$ENV{IDF_PATH}/components/app_trace/sys_view/SEGGER")
-target_sources(${COMPONENT_LIB} PRIVATE
-    ${RTT_DIR}/SEGGER_RTT.c
-    ${RTT_DIR}/SEGGER_RTT_printf.c
+idf_component_register(
+    SRCS
+        "task_tracer.c"
+        "SEGGER_RTT.c"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        freertos
+        esp_timer
+        esp_hw_support
 )
-target_include_directories(${COMPONENT_LIB} PUBLIC ${RTT_DIR})
