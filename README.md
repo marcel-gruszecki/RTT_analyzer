@@ -87,7 +87,6 @@ W katalogu ze scenariuszami zaimplementowano osiem unikalnych profilów obciąż
 * **Scenariusz 5 (High Parallel Concentration):** Koncentruje się na środowisku o wysokim zagęszczeniu zadań dwu-rdzeniowych (stanowiących ponad $80\%$ całego obciążenia), które wymagają ścisłej synchronizacji barierowej na obu procesorach jednocześnie, przy minimalnej dostępności zadań jedno-rdzeniowych.
 * **Scenariusz 6 (Extreme Core Imbalance):** Modeluje skrajnie niezbalansowany stan systemu, w którym długa sekwencja stopniowo rosnących zadań (skalowanych od $10$ do $200$ ms) wykonuje się w całości na jednym rdzeniu, podczas gdy drugi rdzeń pozostaje całkowicie bezczynny (Idle).
 * **Scenariusz 7 (Ultra-Short Cluster Overload):** Składa się z gęstego klastra bardzo krótkich operacji ($p_{\text{single}} \in [0.5, 2]$ ms), które silnie przeciążają pojedynczy rdzeń procesora.
-* **Scenariusz 8 (Edge Case Boundary):** Dodatkowy, brzegowy scenariusz ewaluacyjny sprawdzający zachowanie algorytmów dla specyficznych kombinacji wag preempcyjnych i asymetrycznych barier synchronizacji.
 
 ---
 
