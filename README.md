@@ -20,7 +20,7 @@ Aplikacja przetwarza na żywo binarny strumień zdarzeń przesyłany protokołem
 ## Instalacja i konfiguracja
 1. Pobierz repozytorium projektu:
 ```bash
-   git clone https://github.com/marcel-gruszecki/Dokumentacja_RTT.git
+   git clone https://github.com/marcel-gruszecki/RTT_analyzer
    cd Dokumentacja_RTT
 ```
 2. Zainstaluj wymagane pakiety:
