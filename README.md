@@ -21,7 +21,7 @@ Aplikacja przetwarza na żywo binarny strumień zdarzeń przesyłany protokołem
 1. Pobierz repozytorium projektu:
 ```bash
    git clone https://github.com/marcel-gruszecki/RTT_analyzer
-   cd Dokumentacja_RTT
+   cd RTT_analyzer
 ```
 2. Zainstaluj wymagane pakiety:
 ```bash
