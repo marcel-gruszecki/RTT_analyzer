@@ -20,7 +20,7 @@ Aplikacja przetwarza na żywo binarny strumień zdarzeń przesyłany protokołem
 ## Instalacja i konfiguracja
 1. Pobierz repozytorium projektu:
 ```bash
-   git clone [https://github.com/marcel-gruszecki/Dokumentacja_RTT.git](https://github.com/marcel-gruszecki/Dokumentacja_RTT.git)
+   git clone https://github.com/marcel-gruszecki/Dokumentacja_RTT.git
    cd Dokumentacja_RTT
 ```
 2. Zainstaluj wymagane pakiety:
@@ -89,15 +89,6 @@ W katalogu ze scenariuszami zaimplementowano osiem unikalnych profilów obciąż
 * **Scenariusz 7 (Ultra-Short Cluster Overload):** Składa się z gęstego klastra bardzo krótkich operacji ($p_{\text{single}} \in [0.5, 2]$ ms), które silnie przeciążają pojedynczy rdzeń procesora.
 
 ---
-
-## Dokumentacja
-Całość kodu źródłowego została dokładnie opisana przy pomocy standardowego narzędzia `rustdoc`. Dokumentacja pełni rolę zarówno przewodnika dla użytkownika, jak i specyfikacji architektury oprogramowania oraz instrukcji konserwacyjnej.
-
-* **Interaktywna dokumentacja techniczna (Architektura i Konserwacja):** [https://marcel-gruszecki.github.io/Dokumentacja_RTT/rtt_task_analyzer/index.html](https://marcel-gruszecki.github.io/Dokumentacja_RTT/rtt_task_analyzer/index.html)
-
-Z poziomu powyższego linku można zapoznać się ze strukturą kluczowych modułów:
-* `app` — Architektura interfejsu graficznego.
-* `communication` — Silnik dekodowania strumienia RTT oraz algorytmy (heurystyki) przeliczające czas wykonania.
 
 ### Struktura katalogów i plików źródłowych
 ```text
