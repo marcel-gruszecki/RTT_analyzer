@@ -1,4 +1,6 @@
-# Protokół Transmisji i Konfiguracja Środowiska 
+# Protokół Transmisji i Konfiguracja Środowiska
+
+> **Licencje:** ten katalog zawiera zarówno kod własny (MIT, patrz `/LICENSE.md`), jak i zvendorowaną bibliotekę SEGGER RTT (własna licencja BSD-style) — szczegóły w [`THIRD_PARTY_LICENSES.md`](./THIRD_PARTY_LICENSES.md).
 
 Dane telemetryczne o przełączeniach kontekstu są przesyłane z mikrokontrolera ESP32-P4 do aplikacji analizatora w postaci binarnego strumienia stałorozmiarowych pakietów. Dzięki stałej długości ramki nie jest wymagane dodatkowe pakietowanie długościowe (length framing).
 
