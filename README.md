@@ -1,230 +1,231 @@
 # RTT-Task Analyser
 
-## Cel projektu
-Projekt **RTT-Task Analyser** to narzędzie graficzne i analityczne przeznaczone do wizualizacji, profilowania oraz ewaluacji algorytmów szeregowania zadań w systemach operacyjnych czasu rzeczywistego (RTOS).
+## Project Goal
+**RTT-Task Analyser** is a graphical and analytical tool designed for visualizing, profiling, and evaluating task-scheduling algorithms in real-time operating systems (RTOS).
 
-Aplikacja przetwarza na żywo binarny strumień zdarzeń przesyłany protokołem SEGGER RTT z mikrokontrolera (np. ESP32-P4 pod kontrolą FreeRTOS). Głównym rezultatem jest rysowanie wykresu Gantta w czasie rzeczywistym dla wielu rdzeni oraz wyliczanie metryk efektywności – w tym czasu zakończenia uszeregowania ($C_{max}$) z wykorzystaniem różnych heurystyk (np. Baseline, Greedy SPDP, Duleung).
+The application processes a live binary event stream sent over the SEGGER RTT protocol from a microcontroller (e.g., an ESP32-P4 running FreeRTOS). Its main output is a real-time Gantt chart for multiple cores, along with efficiency metrics — including the schedule completion time ($C_{max}$) computed using several heuristics (e.g., Baseline, Greedy SPDP, DuLeung).
 
-## Wymagania
-**Sprzętowe:**
-* Mikrokontroler (np. ESP32-P4) z wgranym oprogramowaniem generującym komunikaty RTT (scenariusze testowe).
-* Programator kompatybilny z SEGGER J-Link.
-* **Kluczowe:** Aplikacja działa **wyłącznie** przy podłączonym na żywo mikrokontrolerze z aktywnym strumieniem RTT.
+## Requirements
+**Hardware:**
+* A microcontroller (e.g., ESP32-P4) flashed with firmware that generates RTT messages (test scenarios).
+* A SEGGER J-Link compatible programmer/debugger.
+* **Key requirement:** The application works **only** with a live microcontroller connected and an active RTT stream.
 
-**Programowe:**
-* System operacyjny: Linux.
-* Zainstalowane środowisko Rust (wersja `stable`).
-* Zainstalowany pakiet sterowników SEGGER J-Link Software and Documentation Pack.
-* Na systemach Linux wymagane pakiety deweloperskie dla GUI: `libgtk-3-dev`, `libxcb-render0-dev`, `libxcb-shape0-dev`, `libxcb-xfixes0-dev`.
+**Software:**
+* Operating system: Linux.
+* Rust toolchain installed (`stable` channel).
+* SEGGER J-Link Software and Documentation Pack installed.
+* On Linux, the following GUI development packages are required: `libgtk-3-dev`, `libxcb-render0-dev`, `libxcb-shape0-dev`, `libxcb-xfixes0-dev`.
 
-## Instalacja i konfiguracja
-1. Pobierz repozytorium projektu:
+## Installation and Setup
+1. Clone the project repository:
 ```bash
    git clone https://github.com/marcel-gruszecki/RTT_analyzer
    cd RTT_analyzer
 ```
-2. Zainstaluj wymagane pakiety:
+2. Install the required packages:
 ```bash
     sudo apt-get update
     sudo apt-get install -y libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev
 ```
-3. Upewnij się, że masz podłączony mikrokontroler z odpowiednio wgranym oprogramowaniem (firmware ze scenariuszami testowymi) i włączonym serwerem RTT. 
-## Uruchomienie demonstracji 
-1. Podłącz debuger J-Link i mikrokontroler do komputera.
-2. Uruchom układ i zainicjuj transmisję RTT po stronie sprzętowej.
-3. W głównym katalogu sklonowanego repozytorium na komputerze uruchom aplikację analityczną:
+3. Make sure you have a microcontroller connected with the appropriate firmware (test-scenario firmware) flashed, and the RTT server running.
+## Running the Demo
+1. Connect the J-Link debugger and the microcontroller to your computer.
+2. Power up the board and initiate RTT transmission on the hardware side.
+3. From the root directory of the cloned repository on your computer, run the analytics application:
 ```bash
 cargo run --release
 ```
-## Oczekiwany wynik
-Po poprawnym podłączeniu sprzętu i uruchomieniu komendy, otworzy się natywne okno aplikacji graficznej (napisanej w bibliotece egui). Na ekranie powinien pojawić się:
-- Centralny wykres Gantta rysowany na żywo, wizualizujący zadania na rdzeniach Core 0 i Core 1.
-- Panel analityczny prezentujący bieżące wyliczenia czasu zakończenia ($C_{max}$) dla przetwarzanego w danej chwili scenariusza testowego.
-- Wskaźnik poprawnego nawiązania połączenia ze strumieniem RTT.
+## Expected Result
+Once the hardware is properly connected and the command has been run, a native graphical application window (built with the `egui` library) will open. On screen you should see:
+- A central, live-drawn Gantt chart visualizing tasks on Core 0 and Core 1.
+- An analytics panel showing the current completion-time ($C_{max}$) calculations for the test scenario currently being processed.
+- An indicator confirming a successful connection to the RTT stream.
 
-## Dane
-Projekt nie używa zewnętrznych baz danych ani statycznych plików wsadowych (logów). 
-Wszystkie dane niezbędne do wizualizacji i analizy są pozyskiwane na żywo ze strumienia RTT generowanego 
-przez podłączony mikrokontroler. Dostęp do danych polega na fizycznym wgraniu przygotowanych w kodzie C/FreeRTOS scenariuszy na mikrokontroler.
+## Data
+The project does not use any external databases or static batch/log files.
+All data required for visualization and analysis is acquired live from the RTT stream generated
+by the connected microcontroller. Data access relies on physically flashing the prepared C/FreeRTOS
+test scenarios onto the microcontroller.
 
-## Reprodukcja i weryfikacja wyników 
-Aby zweryfikować wyniki, należy wgrać na mikrokontroler kod reprezentujący dany scenariusz testowy 
-(np. scenariusz z asymetrią obciążeń), a następnie odczytać wartości obliczone w Panelu Analitycznym aplikacji.
-Weryfikacja polega na porównaniu wyników uzyskanych w aplikacji w czasie rzeczywistym z referencyjnymi 
-danymi zawartymi w pliku arkusza kalkulacyjnego wyniki.xlsx, który został dołączony do repozytorium. 
-Plik ten zawiera zestawienie wyników i metryk dla wszystkich obsługiwanych scenariuszy. (Czasy wykonania scenariuszy
-mogą się różnić w zależności od sprzętu i konfiguracji!)
+## Reproducing and Verifying Results
+To verify the results, flash the microcontroller with the code representing a given test scenario
+(e.g., a scenario with asymmetric load), then read the values computed in the application's Analysis Panel.
+Verification consists of comparing the real-time results produced by the application against the reference
+data contained in the `wyniki.xlsx` spreadsheet file included in the repository.
+This file contains a summary of results and metrics for all supported scenarios. (Scenario execution times
+may vary depending on hardware and configuration!)
 
-## Testy
-W kodzie analizatora nie zaimplementowano standardowych automatycznych testów jednostkowych (np. cargo test). 
-Proces testowania i walidacji odbywa się systemowo za pomocą fizycznych scenariuszy testowych.
-- Uruchomienie testów: Wgranie wybranego scenariusza brzegowego na sprzęt i uruchomienie analizatora.
-- Raporty z testów: Oficjalne wyniki i metryki z przeprowadzonych testów scenariuszowych udokumentowane 
-są we wspomnianym pliku wyniki.xlsx.
+## Tests
+The analyzer's code does not implement standard automated unit tests (e.g. `cargo test`).
+Testing and validation are carried out systemically using physical test scenarios.
+- Running tests: Flash the chosen edge-case scenario onto the hardware and run the analyzer.
+- Test reports: Official results and metrics from the scenario-based tests are documented
+in the aforementioned `wyniki.xlsx` file.
 
-## Dokumentacja
-Całość kodu źródłowego została dokładnie opisana przy pomocy standardowego narzędzia rustdoc. 
-Dokumentacja pełni rolę zarówno przewodnika dla użytkownika, jak i specyfikacji architektury oprogramowania 
-oraz instrukcji konserwacyjnej.
-- Interaktywna dokumentacja techniczna (Architektura i Konserwacja):https://marcel-gruszecki.github.io/Dokumentacja_RTT/rtt_task_analyzer/index.html
-Z poziomu powyższego linku można zapoznać się ze strukturą kluczowych modułów:
-- app - Architektura interfejsu graficznego.
-- communication - Silnik dekodowania strumienia RTT oraz algorytmy (heurystyki) przeliczające czas wykonania.
+## Documentation
+The entire source code has been thoroughly documented using the standard `rustdoc` tool.
+The documentation serves both as a user guide and as a specification of the software architecture
+and maintenance instructions.
+- Interactive technical documentation (Architecture and Maintenance): https://marcel-gruszecki.github.io/Dokumentacja_RTT/rtt_task_analyzer/index.html
+From the link above you can explore the structure of the key modules:
+- app - Graphical interface architecture.
+- communication - RTT stream decoding engine and execution-time computation algorithms (heuristics).
 
-### Znaczenie i nomenklatura scenariuszy testowych
-Wszystkie kody źródłowe implementujące zadania testowe FreeRTOS dla mikrokontrolera ESP32-P4 znajdują się w dedykowanym folderze `Scenariusze/`. Pliki te nazwane są według jednolitego klucza strukturalnego:
-`Zadania_[NumerScenariusza]_[LiczbaZadań].c`
+### Meaning and Naming Convention of Test Scenarios
+All source code implementing FreeRTOS test tasks for the ESP32-P4 microcontroller is located in the dedicated `Scenariusze/` folder. These files are named according to a consistent structural key:
+`Zadania_[ScenarioNumber]_[NumberOfTasks].c`
 
-*Przykład:* Plik o nazwie `Zadania_1_5.c` oznacza, że zawiera on implementację **Scenariusza 1** konfigurującego pulę **5 unikalnych zadań** ($n=5$).
+*Example:* A file named `Zadania_1_5.c` means it contains the implementation of **Scenario 1** configured with a pool of **5 unique tasks** ($n=5$).
 
-### Opisy scenariuszy badawczo-testowych
-W katalogu ze scenariuszami zaimplementowano osiem unikalnych profilów obciążeń systemowych w celu zweryfikowania odporności i elastyczności zaimplementowanych algorytmów:
+### Descriptions of the Research/Test Scenarios
+Eight unique system-load profiles have been implemented in the scenarios directory to verify the robustness and flexibility of the implemented algorithms:
 
-* **Scenariusz 1 (Symmetrical Baseline):** Działa jako symetryczny punkt odniesienia, w którym zadania mają jednolite właściwości i są zbalansowane. Czasy trwania w trybie jedno-rdzeniowym generowane są w przewidywalnym zakresie ($p_{\text{single}} \in [10, 30]$ ms), a czasy w trybie dwu-rdzeniowym są skracane o połowę ($p_{\text{dual}} \approx p_{\text{single}}/2$).
-* **Scenariusz 2 (Asymmetrical Workload):** Reprezentuje asymetryczny profil obciążenia, w którym jeden rdzeń mierzy się z bardzo dużym narzutem obliczeniowym wynikającym z długich zadań jedno-rdzeniowych ($p_{\text{single}} \in [150, 300]$ ms), podczas gdy drugi rdzeń obsługuje jedynie pojedyncze, odizolowane operacje.
-* **Scenariusz 3 (Linear Queue Scaling):** Organizuje zadania sekwencyjnie na obu rdzeniach od najkrótszego czasu wykonania do najdłuższego (skalując je liniowo w przedziale od $5$ do $150$ ms) w celu przeanalizowania zachowania podstawowych kolejek przetwarzania.
-* **Scenariusz 4 (High Volatility Execution):** Wprowadza wysoką zmienność (wariancję) długości procesów. Podczas działania systemu bardzo długie ($p \in [200, 500]$ ms) oraz bardzo krótkie zadania ($p \in [1, 5]$ ms) stale i naprzemiennie przeplatają się na osi czasu.
-* **Scenariusz 5 (High Parallel Concentration):** Koncentruje się na środowisku o wysokim zagęszczeniu zadań dwu-rdzeniowych (stanowiących ponad $80\%$ całego obciążenia), które wymagają ścisłej synchronizacji barierowej na obu procesorach jednocześnie, przy minimalnej dostępności zadań jedno-rdzeniowych.
-* **Scenariusz 6 (Extreme Core Imbalance):** Modeluje skrajnie niezbalansowany stan systemu, w którym długa sekwencja stopniowo rosnących zadań (skalowanych od $10$ do $200$ ms) wykonuje się w całości na jednym rdzeniu, podczas gdy drugi rdzeń pozostaje całkowicie bezczynny (Idle).
-* **Scenariusz 7 (Ultra-Short Cluster Overload):** Składa się z gęstego klastra bardzo krótkich operacji ($p_{\text{single}} \in [0.5, 2]$ ms), które silnie przeciążają pojedynczy rdzeń procesora.
+* **Scenario 1 (Symmetrical Baseline):** Acts as a symmetrical reference point in which tasks have uniform properties and are balanced. Single-core durations are generated within a predictable range ($p_{\text{single}} \in [10, 30]$ ms), while dual-core durations are halved ($p_{\text{dual}} \approx p_{\text{single}}/2$).
+* **Scenario 2 (Asymmetrical Workload):** Represents an asymmetric load profile in which one core faces a very heavy computational load from long single-core tasks ($p_{\text{single}} \in [150, 300]$ ms), while the other core only handles single, isolated operations.
+* **Scenario 3 (Linear Queue Scaling):** Arranges tasks sequentially on both cores from the shortest to the longest execution time (scaling linearly in the range from $5$ to $150$ ms) in order to analyze the behavior of basic processing queues.
+* **Scenario 4 (High Volatility Execution):** Introduces high variance in process lengths. During system operation, very long ($p \in [200, 500]$ ms) and very short tasks ($p \in [1, 5]$ ms) constantly and alternately interleave along the timeline.
+* **Scenario 5 (High Parallel Concentration):** Focuses on an environment with a high density of dual-core tasks (making up over $80\%$ of the total load), requiring tight barrier synchronization on both processors simultaneously, with minimal availability of single-core tasks.
+* **Scenario 6 (Extreme Core Imbalance):** Models an extremely unbalanced system state, in which a long sequence of gradually increasing tasks (scaling from $10$ to $200$ ms) runs entirely on one core, while the other core remains completely idle.
+* **Scenario 7 (Ultra-Short Cluster Overload):** Consists of a dense cluster of very short operations ($p_{\text{single}} \in [0.5, 2]$ ms) that heavily overload a single processor core.
 
 ---
 
-### Struktura katalogów i plików źródłowych
+### Directory and Source File Structure
 ```text
 .
-├── Cargo.lock                    # Blokada wersji zależności bibliotecznych Cargo
-├── Cargo.toml                    # Konfiguracja projektu Rust i definicje zależności
-├── README.md                     # Główny dokument informacyjny projektu
-├── esp32_tracer/                 # Komponent firmware w C: biblioteka hooks rejestrująca przełączenia RTOS
-│   ├── CMakeLists.txt            # Definicje budowania dla systemu ESP-IDF
-│   ├── freertos_hooks.h          # Hooki systemowe FreeRTOS przechwytujące zdarzenia
-│   ├── README.md                 # Dokumentacja modułu diagnostycznego firmware
-│   ├── SEGGER_RTT.c              # Implementacja niskopoziomowej biblioteki SEGGER RTT
-│   ├── SEGGER_RTT_Conf.h         # Konfiguracja rozmiarów buforów i kanałów RTT
-│   ├── SEGGER_RTT.h              # Plik nagłówkowy API SEGGER RTT
-│   ├── task_tracer.c             # Logika rejestracji i formatowania pakietów zdarzeń
-│   └── task_tracer.h             # Eksport makra tracer_record i definicji zdarzeń EVT_IN/EVT_OUT
-├── Scenariusze/                  # Kody źródłowe firmware (C/FreeRTOS) generujące obciążenia testowe
-│   ├── Zadania_1_5.c             # Scenariusz 1: pula n = 5 unikalnych zadań
-│   ├── Zadania_1_10.c            # Scenariusz 1: pula n = 10 unikalnych zadań
-│   ├── ...                       # Wykazy instancji dla kolejnych kroków n ∈ {5, 10, 20, 30, 50, 100}
-│   ├── Zadania_4_10.c            # Scenariusz 4: pula n = 10 unikalnych zadań
-│   └── ...                       # Pełne pokrycie profili od Scenariusza 1 do Scenariusza 8
-└── src/                          # Komponent PC: oprogramowanie klienckie i analityczne (Rust)
-    ├── main.rs                   # Punkt wejścia, inicjalizacja i uruchomienie okna egui
-    ├── app.rs                    # Stan główny aplikacji, pętla zdarzeń UI i logika paneli
+├── Cargo.lock                    # Cargo dependency version lock file
+├── Cargo.toml                    # Rust project configuration and dependency definitions
+├── README.md                     # Main project information document
+├── esp32_tracer/                 # Firmware component in C: hooks library recording RTOS context switches
+│   ├── CMakeLists.txt            # Build definitions for the ESP-IDF system
+│   ├── freertos_hooks.h          # FreeRTOS system hooks capturing events
+│   ├── README.md                 # Documentation for the firmware diagnostic module
+│   ├── SEGGER_RTT.c              # Implementation of the low-level SEGGER RTT library
+│   ├── SEGGER_RTT_Conf.h         # Configuration of RTT buffer sizes and channels
+│   ├── SEGGER_RTT.h              # SEGGER RTT API header file
+│   ├── task_tracer.c             # Event-packet recording and formatting logic
+│   └── task_tracer.h             # Exports the tracer_record macro and EVT_IN/EVT_OUT event definitions
+├── Scenariusze/                  # Firmware source code (C/FreeRTOS) generating test loads
+│   ├── Zadania_1_5.c             # Scenario 1: pool of n = 5 unique tasks
+│   ├── Zadania_1_10.c            # Scenario 1: pool of n = 10 unique tasks
+│   ├── ...                       # Instance listings for subsequent steps n ∈ {5, 10, 20, 30, 50, 100}
+│   ├── Zadania_4_10.c            # Scenario 4: pool of n = 10 unique tasks
+│   └── ...                       # Full coverage of profiles from Scenario 1 to Scenario 8
+└── src/                          # PC component: client and analytics software (Rust)
+    ├── main.rs                   # Entry point, initialization, and launching of the egui window
+    ├── app.rs                    # Main application state, UI event loop, and panel logic
     ├── app/
-    │   ├── tracer.rs             # Wątek w tle odbierający binarne pakiety za pośrednictwem probe-rs
-    │   └── ui/                   # Implementacja i renderowanie paneli interfejsu (top, task, analysis)
+    │   ├── tracer.rs             # Background thread receiving binary packets via probe-rs
+    │   └── ui/                   # Implementation and rendering of interface panels (top, task, analysis)
     └── communication/
-        ├── protocol.rs           # Definicja i parsowanie formatu pakietów RTT (nagłówek MAGIC, 34 bajty)
-        ├── session.rs            # Nawiązanie sesji ze sprzętem przez probe-rs, odczyt bufora cyklicznego
-        ├── scheduler.rs          # Parser strukturalny konwertujący surowe zdarzenia -> TaskExecution
-        └── heuristics.rs         # Silnik analityczny: implementacja algorytmów (GreedySpdp, SplitOff, DuLeung)
+        ├── protocol.rs           # Definition and parsing of the RTT packet format (MAGIC header, 34 bytes)
+        ├── session.rs            # Establishing a session with hardware via probe-rs, reading the ring buffer
+        ├── scheduler.rs          # Structural parser converting raw events -> TaskExecution
+        └── heuristics.rs         # Analytics engine: implementation of the algorithms (GreedySpdp, SplitOff, DuLeung)
 ```
 
-## Dokumentacja biblioteki diagnostycznej esp32_tracer
+## esp32_tracer Diagnostic Library Documentation
 
-Komponent `esp32_tracer` stanowi sprzętowo-programową podstawę systemu telemetrii. Jest to niskopoziomowa biblioteka napisana w języku C, zintegrowana z systemem operacyjnym FreeRTOS na mikrokontrolerze ESP32-P4. Odpowiada za natychmiastowe przechwytywanie zmian stanów procesów i bezblokowe przesyłanie surowych danych telemetrycznych przez interfejs JTAG/SWD do oprogramowania analizatora PC.
+The `esp32_tracer` component is the hardware/software foundation of the telemetry system. It is a low-level library written in C, integrated with the FreeRTOS operating system on the ESP32-P4 microcontroller. It is responsible for instantly capturing process state changes and for non-blocking transmission of raw telemetry data over the JTAG/SWD interface to the PC analyzer software.
 
-### Protokół binarny i struktura pakietu telemetrii
-Transmisja danych diagnostycznych opiera się na stałych pakietach o rozmiarze dokładnie **34 bajtów**. Każda ramka jest ściśle upakowana przy użyciu atrybutu `__attribute__((packed))`, co eliminuje dopełnienia kompilatora (padding) i zapewnia idealną spójność ze strukturami danych dekodera w języku Rust.
+### Binary Protocol and Telemetry Packet Structure
+Diagnostic data transmission is based on fixed-size packets of exactly **34 bytes**. Each frame is tightly packed using the `__attribute__((packed))` attribute, which eliminates compiler padding and guarantees perfect consistency with the decoder's data structures in Rust.
 
-Morfologia surowej ramki binarnej (`tracer_packet_t`):
+Morphology of the raw binary frame (`tracer_packet_t`):
 
-| Przesunięcie (bity/bajty) | Typ danych | Nazwa pola | Opis |
+| Offset (bits/bytes) | Data Type | Field Name | Description |
 | :--- | :--- | :--- | :--- |
-| `0x00 - 0x01` | `uint8_t[2]` | `magic` | Stała sekwencja startowa synchronizacji ramki: `{0xAB, 0xCD}`. |
-| `0x02` | `uint8_t` | `type` | Typ zdarzenia RTOS (`0x01`: `SWITCHED_IN`, `0x02`: `SWITCHED_OUT`). |
-| `0x03` | `uint8_t` | `core_id` | Fizyczny rdzeń realizujący zadanie: `0` (Core 0) lub `1` (Core 1). |
-| `0x04` | `uint8_t` | `priority` | Bieżący priorytet priorytetu zadania FreeRTOS. |
-| `0x05 - 0x08` | `uint32_t` | `task_id` | Unikalny identyfikator zadania (rzutowany adres wskaźnika TCB). |
-| `0x09 - 0x18` | `char[16]` | `name` | Tekstowa nazwa zadania, uzupełniona zerem (`\0`). |
-| `0x19 - 0x20` | `uint64_t` | `timestamp_us` | Sprzętowy znacznik czasu w mikrosekundach od startu systemu. |
-| `0x21` | `uint8_t` | `checksum` | Bitowa suma kontrolna XOR wszystkich poprzedzających 33 bajtów. |
+| `0x00 - 0x01` | `uint8_t[2]` | `magic` | Fixed frame-sync start sequence: `{0xAB, 0xCD}`. |
+| `0x02` | `uint8_t` | `type` | RTOS event type (`0x01`: `SWITCHED_IN`, `0x02`: `SWITCHED_OUT`). |
+| `0x03` | `uint8_t` | `core_id` | Physical core executing the task: `0` (Core 0) or `1` (Core 1). |
+| `0x04` | `uint8_t` | `priority` | Current priority of the FreeRTOS task. |
+| `0x05 - 0x08` | `uint32_t` | `task_id` | Unique task identifier (cast address of the TCB pointer). |
+| `0x09 - 0x18` | `char[16]` | `name` | Task name string, zero-padded (`\0`). |
+| `0x19 - 0x20` | `uint64_t` | `timestamp_us` | Hardware timestamp in microseconds since system startup. |
+| `0x21` | `uint8_t` | `checksum` | Bitwise XOR checksum of all preceding 33 bytes. |
 
-### Specyfikacja API i funkcji bibliotecznych
+### API and Library Function Specification
 
-#### 1. Inicjalizacja kanału telemetrii
+#### 1. Telemetry Channel Initialization
 ```c
 void tracer_init(void);
 ```
-- Opis: Rezerwuje i konfiguruje dedykowany kanał `Kanał 1` protokołu SEGGER RTT pod nazwą `tracer`. Alokuje statyczny bufor kołowy pamięci RAM o rozmiarze dostosowanym do wielokrotności rozmiaru ramki ($512 \times 34\text{ B}$).
-- Mechanizm bezpieczeństwa: Kanał zostaje zainicjalizowany w trybie sprzętowym `SEGGER_RTT_MODE_NO_BLOCK_SKIP`. Oznacza to, że w przypadku przepełnienia bufora kołowego (np. z powodu opóźnień transmisji JTAG), najstarsze pakiety są pomijane, co całkowicie zapobiega blokowaniu planisty FreeRTOS i gwarantuje brak deterministycznego narzutu na czas rzeczywisty aplikacji osadzonej.
-- Wymagania: Funkcja musi zostać wywołana jednorazowo w sekcji startowej funkcji app_main, przed uruchomieniem planisty zadań FreeRTOS.
+- Description: Reserves and configures a dedicated SEGGER RTT `Channel 1` named `tracer`. Allocates a static RAM ring buffer sized to a multiple of the frame size ($512 \times 34\text{ B}$).
+- Safety mechanism: The channel is initialized in the `SEGGER_RTT_MODE_NO_BLOCK_SKIP` hardware mode. This means that if the ring buffer overflows (e.g., due to JTAG transmission delays), the oldest packets are dropped, which fully prevents blocking the FreeRTOS scheduler and guarantees no deterministic overhead on the embedded application's real-time behavior.
+- Requirements: The function must be called exactly once in the startup section of `app_main`, before the FreeRTOS task scheduler is started.
 
-#### 2. Rejestracja zdarzenia RTOS
+#### 2. RTOS Event Recording
 ```c
 void tracer_record(tracer_evt_t type, const char *name, uint8_t core_id, uint8_t priority);
 ```
-- Opis: Tworzy binarny pakiet strukturalny w pamięci, automatycznie ekstrahuje uchwyt bieżącego zadania poprzez `xTaskGetCurrentTaskHandle()`, pobiera mikrosekundowy znacznik czasu wysokiej rozdzielczości z kontrolera `esp_timer_get_time()` oraz oblicza sumę kontrolną XOR za pomocą wewnętrznej funkcji pomocniczej `xor_checksum`.
-- Zarządzanie współbieżnością: Funkcja jest w pełni bezpieczna pod kątem wielordzeniowości (multicore-safe) oraz bezpieczna do wywołania w kontekście obsługi przerwań sprzętowych (`ISR-safe`). Zapis do bufora za pomocą `SEGGER_RTT_Write` chroniony jest wewnętrznymi blokadami sprzętowymi typu spinlock na poziomie warstwy abstrakcji sprzętu (HAL).
+- Description: Builds a binary struct packet in memory, automatically extracts the handle of the current task via `xTaskGetCurrentTaskHandle()`, retrieves a high-resolution microsecond timestamp from `esp_timer_get_time()`, and computes the XOR checksum using the internal helper function `xor_checksum`.
+- Concurrency handling: The function is fully multicore-safe and ISR-safe. Writing to the buffer via `SEGGER_RTT_Write` is protected by internal hardware spinlocks at the Hardware Abstraction Layer (HAL) level.
 
 
-## Dokumentacja użytkownika
+## User Documentation
 
-Aplikacja została zaprojektowana tak, aby zapewnić intuicyjne, graficzne środowisko analityczne do badania szeregowania zadań systemowych. Ponieważ narzędzie nie posiada wbudowanego trybu symulacji offline z plików tekstowych, jego działanie opiera się wyłącznie na przetwarzaniu danych pobieranych na żywo ze sprzętu.
+The application is designed to provide an intuitive, graphical analytical environment for studying system task scheduling. Since the tool has no built-in offline simulation mode from text files, its operation relies exclusively on processing data acquired live from hardware.
 
-### Pierwsze kroki (Podłączenie i synchronizacja)
-1. Do kodu źródłowego firmware wgranego na mikrokontroler (wybrany scenariusz z katalogu Scenariusze/) musi być włączona i skompilowana biblioteka `esp32_tracer`. Funkcja `tracer_init()`musi zostać wywołana na początku funkcji inicjalizującej system.
-2. Uruchom aplikację `rtt_task_analyzer`.
-3. Na górnym panelu kontrolnym kliknij przycisk `Połącz`.
-4. Prawidłową synchronizację ze sprzętem sygnalizuje zmiana statusu połączenia oraz pojawienie się zielonego napisu `Połączono`.
-
----
-
-### Panel Wykresy (Przycisk "Wykresy" na górnym panelu)
-Po udanym nawiązaniu połączenia z mikrokontrolerem, aplikacja aktywuje panel wykresów prezentujący dane z bufora SEGGER RTT w czasie rzeczywistym. Widok interfejsu podzielony jest na funkcjonalne obszary:
-
-* **Lewy panel:** Zawiera listę oraz typy wszystkich unikalnych zadań, które system operacyjny FreeRTOS aktualnie rejestruje na mikrokontrolerze.
-* **Panel centralny (Wykres Gantta):** Prezentuje oś czasu, na której dynamicznie rysowane są bloki wykonania zadań z precyzyjnym podziałem na `Core 0` oraz `Core 1`. Każde zadanie posiada własny, generowany automatycznie kolor. Interfejs wspiera przybliżanie (Zoom) za pomocą rolki myszy oraz przesuwanie wykresu.
-* **Dolna tabela zdarzeń:** Rejestruje chronologiczny i aktualizowany na bieżąco wykaz wykonanych procesów. Z tabeli można wyczytać szczegółowe parametry:
-    * Nazwę zadania,
-    * Czas rozpoczęcia zadania (`Start [us]`),
-    * Czas zakończenia zadania (`Koniec [us]`),
-    * Identyfikator rdzenia fizycznego, na którym proces się wykonał (`Rdzeń`),
-    * Całkowity czas procesora przydzielony na to wykonanie (`Czas [us]`).
-* **Prawy panel metryk:** Wyświetla podstawowe, zagregowane parametry wydajnościowe mikrokontrolera. Można tu monitorować bieżące procentowe obciążenie każdego z rdzeni, sumaryczną liczbę zidentyfikowanych unikalnych zadań oraz łączną ilość zarejestrowanych przełączeń kontekstu.
+### First Steps (Connection and Synchronization)
+1. The firmware source code flashed onto the microcontroller (the chosen scenario from the `Scenariusze/` directory) must have the `esp32_tracer` library enabled and compiled in. The `tracer_init()` function must be called at the beginning of the system's initialization function.
+2. Run the `rtt_task_analyzer` application.
+3. On the top control panel, click the `Connect` button.
+4. Successful synchronization with the hardware is signaled by a change in connection status and the appearance of the green `Connected` label.
 
 ---
 
-### Panel Analizy (Przycisk "Analiza" na górnym panelu)
-Panel analizy pozwala na uruchomienie silnika optymalizacyjnego, który ewaluuje zebrane pakiety i oblicza alternatywne plany uszeregowania procesów.
+### Charts Panel (the "Charts" button on the top panel)
+Once a connection to the microcontroller has been successfully established, the application activates the chart panel, presenting data from the SEGGER RTT buffer in real time. The interface view is divided into functional areas:
 
-#### Obsługa panelu analitycznego (UI)
-W panelu sterowania analizą użytkownik ma do dyspozycji dwa tryby wykonywania obliczeń:
-* ▶ **Uruchom wszystkie** — Uruchamia równolegle trzy zaimplementowane algorytmy matematyczne i generuje zbiorczą tabelę porównawczą.
-* ▶ **Tylko wybrany** — Wykonuje wyłącznie jeden algorytm wskazany z listy rozwijanej umieszczonej obok. Opcja ta jest przydatna przy dużych zbiorach zadań do mierzenia czystego czasu wykonania algorytmu dokładnego bez czekania na zakończenie pracy heurystyk.
+* **Left panel:** Contains a list and the types of all unique tasks that the FreeRTOS operating system is currently registering on the microcontroller.
+* **Central panel (Gantt Chart):** Shows a timeline on which task-execution blocks are drawn dynamically, precisely split between `Core 0` and `Core 1`. Each task has its own automatically generated color. The interface supports zooming via the mouse wheel and panning the chart.
+* **Bottom event table:** Records a chronological, continuously updated list of executed processes. From the table you can read detailed parameters:
+    * Task name,
+    * Task start time (`Start [us]`),
+    * Task end time (`End [us]`),
+    * Identifier of the physical core the process ran on (`Core`),
+    * Total CPU time allocated to this execution (`Time [us]`).
+* **Right metrics panel:** Displays basic, aggregated performance parameters of the microcontroller. Here you can monitor the current percentage load of each core, the total number of identified unique tasks, and the total number of recorded context switches.
 
-Po wywołaniu obliczeń aplikacja generuje tabelę wyników o następującej strukturze kolumnowej:
-* `Algorytm` — Nazwa zastosowanej metody szeregowania.
-* `Cmax [µs]` — Obliczony całkowity czas zakończenia uszeregowania (makespan).
-* `Bazowy [µs]` — Rzeczywisty czas wykonania ($C_{max}$) przechwycony bezpośrednio ze śladu FreeRTOS na mikrokontrolerze (punkt odniesienia).
-* `Poprawa` — Procentowy zysk wydajnościowy względem harmonogramu bazowego.
-* `Czas algorytmu` — Dokładny czas, jaki procesor PC poświęcił na wykonanie obliczeń optymalizacyjnych (wyrażany dynamicznie w $ns / \mu s / ms / s$).
+---
 
-Bezpośrednio pod tabelą analityczną aplikacja generuje statyczny wykres Gantta odzwierciedlający strukturę i rozkład preempcji dla *aktualnie klikniętego/wybranego* z tabeli algorytmu.
+### Analysis Panel (the "Analysis" button on the top panel)
+The analysis panel allows you to run the optimization engine, which evaluates the collected packets and computes alternative process-scheduling plans.
 
-#### Charakterystyka matematyczna i opis zaimplementowanych algorytmów
-Wszystkie zaimplementowane metody rozwiązują problem szeregowania klasy **$P2 \mid pmtn, spdp\text{-}any \mid C_{max}$** w środowisku dwurdzeniowym ($M=2$). Model dopuszcza pełną preempcję (przerywanie i wznawianie zadań) oraz migrację między rdzeniami. Zadania mogą działać w jednym z dwóch trybów:
-* **Tryb 1-rdzeniowy (Monolithic - $S_1$):** Zadanie w danym momencie wykonuje się na jednym, dowolnym rdzeniu.
-* **Tryb 2-rdzeniowy (Parallelized/Dual - $S_2$):** Zadanie ze wsparciem dla równoległości wymaga jednoczesnego zajęcia obu rdzeni procesora, redukując swój fizyczny czas trwania na osi czasu.
+#### Analysis Panel Controls (UI)
+In the analysis control panel, the user has two computation modes available:
+* ▶ **Run All** — Runs all three implemented mathematical algorithms in parallel and generates a combined comparison table.
+* ▶ **Selected Only** — Runs only a single algorithm chosen from the adjacent dropdown list. This option is useful for large task sets, to measure the pure execution time of the exact algorithm without waiting for the heuristics to finish.
 
-W silniku analitycznym zaimplementowano trzy podejścia algorytmiczne:
+After the computation is triggered, the application generates a results table with the following column structure:
+* `Algorithm` — Name of the applied scheduling method.
+* `Cmax [µs]` — The computed total schedule completion time (makespan).
+* `Baseline [µs]` — The actual execution time ($C_{max}$) captured directly from the FreeRTOS trace on the microcontroller (reference point).
+* `Improvement` — Percentage performance gain relative to the baseline schedule.
+* `Algorithm Time` — The exact time the PC's processor spent performing the optimization computation (expressed dynamically in $ns / \mu s / ms / s$).
+
+Directly below the analysis table, the application generates a static Gantt chart reflecting the structure and preemption layout for the *currently clicked/selected* algorithm from the table.
+
+#### Mathematical Characteristics and Description of the Implemented Algorithms
+All implemented methods solve the scheduling problem of class **$P2 \mid pmtn, spdp\text{-}any \mid C_{max}$** in a dual-core environment ($M=2$). The model allows full preemption (interrupting and resuming tasks) and migration between cores. Tasks can operate in one of two modes:
+* **Single-core mode (Monolithic - $S_1$):** At a given moment, the task runs on a single, arbitrary core.
+* **Dual-core mode (Parallelized/Dual - $S_2$):** A task with parallelism support requires simultaneous occupation of both processor cores, reducing its physical duration on the timeline.
+
+Three algorithmic approaches are implemented in the analytics engine:
 ##### 1. GreedySpdp
-* **Złożoność obliczeniowa:** $O(n^2)$
-* **Klasa:** Heurystyka lokalnego poszukiwania.
-* **Zasada działania:** Algorytm rozpoczyna proces optymalizacji z założeniem, że wszystkie zarejestrowane zadania znajdują się w zbiorze jednotaktowym $S_1$ (tryb jedno-rdzeniowy). W każdej kolejnej iteracji algorytm symuluje przeniesienie pojedynczego zadania do zbioru $S_2$ (tryb dwu-rdzeniowy) i oblicza wpływ tej zmiany na globalny wskaźnik $C_{max}$. Wybierane jest to zadanie, którego relokacja daje największą natychmiastową redukcję czasu. Pętla poprawy wykonuje się tak długo, aż żadna pojedyncza zmiana trybu nie będzie w stanie skrócić harmonogramu.
-* **Ograniczenie:** Ze względu na zachłanną naturę, algorytm może utknąć w lokalnym minimum matematycznym.
+* **Computational complexity:** $O(n^2)$
+* **Class:** Local-search heuristic.
+* **Operating principle:** The algorithm starts the optimization process assuming that all recorded tasks are in the single-mode set $S_1$ (single-core mode). In each subsequent iteration, the algorithm simulates moving a single task to set $S_2$ (dual-core mode) and computes the impact of that change on the global $C_{max}$ metric. The task whose relocation yields the greatest immediate time reduction is selected. The improvement loop runs until no single mode change is able to shorten the schedule any further.
+* **Limitation:** Due to its greedy nature, the algorithm can get stuck in a local mathematical minimum.
 
 ##### 2. SplitOff
-* **Złożoność obliczeniowa:** $O(n^2)$
-* **Klasa:** Heurystyka odciążania sterowana barierą (McNaughton-guided offload).
-* **Zasada działania:** Algorytm wstępnie sortuje wszystkie zadania według ich czasów trwania w sposób malejący i planuje je jako zadania jedno-rdzeniowe. Zamiast testować losowe kombinacje zmian, algorytm oblicza teoretyczną dolną granicę dla zadań jedno-rdzeniowych na podstawie reguły wraparound McNaughtona: $\max(p_{\max}, \sum p_i / 2)$. Następnie identyfikuje precyzyjnie to zadanie (wąskie gardło), którego realizacja przekracza wyznaczoną granicę pojemności rdzenia i wymusza przerwanie (preempcję) oraz przerzucenie pracy. Wytypowane zadanie barierowe jest przenoszone do trybu dwu-rdzeniowego ($S_2$), co skraca całkowity czas trwania szczytu. Proces powtarza się iteracyjnie do momentu stabilizacji globalnego $C_{max}$.
+* **Computational complexity:** $O(n^2)$
+* **Class:** Barrier-driven offloading heuristic (McNaughton-guided offload).
+* **Operating principle:** The algorithm initially sorts all tasks by duration in descending order and schedules them as single-core tasks. Instead of testing random combinations of changes, the algorithm computes the theoretical lower bound for single-core tasks based on McNaughton's wraparound rule: $\max(p_{\max}, \sum p_i / 2)$. It then precisely identifies the task (the bottleneck) whose execution exceeds the determined core-capacity bound and forces a preemption and workload shift. The identified barrier task is moved to dual-core mode ($S_2$), which shortens the total peak duration. The process repeats iteratively until the global $C_{max}$ stabilizes.
 
 ##### 3. DuLeung1989
-* **Złożoność obliczeniowa:** $O(n \cdot 2^n)$
-* **Klasa:** Algorytm dokładny (Exact) oparty na strategii Du i Leunga.
-* **Zasada działania:** Algorytm gwarantuje znalezienie matematycznie optymalnego harmonogramu o absolutnie minimalnym $C_{max}$. Dokonuje on pełnej enumeracji (przeglądu wyczerpującego) całej przestrzeni stanów, analizując wszystkie $2^n$ możliwych kombinacji podziału zbioru zadań na tryby jedno- ($S_1$) i dwu-rdzeniowe ($S_2$). Każdy unikalny podział jest oceniany analitycznie przy użyciu preempcyjnej formuły matematycznej Błażewicza, a algorytm zwraca konfigurację o najniższym koszcie.
-* **Ograniczenie:** Z uwagi na wykładniczy wzrost złożoności, algorytm jest w pełni praktyczny i stabilny czasowo dla systemów, gdzie liczba zadań wynosi $n \le 22$. W przypadku wykrycia większej liczby procesów ($n > 22$), aplikacja automatycznie uruchamia bezpieczny mechanizm fallback, rezygnując z algorytmu dokładnego na rzecz stabilnej heurystyki `SplitOff`, co zapobiega zawieszeniu interfejsu użytkownika (Timeout).
+* **Computational complexity:** $O(n \cdot M^H)$, where $M$ is the number of cores (processors, $M=2$) and $H$ is the number of tasks eligible for dual-core mode. In the worst case ($H = n$) this reduces to $O(n \cdot 2^n)$.
+* **Class:** Exact algorithm based on the Du and Leung strategy.
+* **Operating principle:** The algorithm guarantees finding the mathematically optimal schedule with an absolutely minimal $C_{max}$. It performs a full enumeration (exhaustive search) of the entire state space, analyzing all $M^H$ possible combinations of splitting the task set into single- ($S_1$) and dual-core ($S_2$) modes. Each unique split is evaluated analytically using Błażewicz's preemptive mathematical formula, and the algorithm returns the configuration with the lowest cost.
+* **Limitation:** Due to the exponential growth of complexity, the algorithm is fully practical and stable in terms of timing for systems where the number of tasks is $n \le 22$. If a larger number of processes is detected ($n > 22$), the application automatically triggers a safe fallback mechanism, giving up the exact algorithm in favor of the stable `SplitOff` heuristic, which prevents the user interface from hanging (timeout).

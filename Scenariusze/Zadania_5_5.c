@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define US_TO_ITERS(us) ((us) * 40LL)
+#define US_TO_ITERS(us) ((us) * 20LL)
 
 static TaskHandle_t h_core0, h_core1 = NULL;
 static SemaphoreHandle_t xDualStartSem = NULL;

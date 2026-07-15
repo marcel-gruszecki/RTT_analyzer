@@ -59,18 +59,36 @@ fn aggregate_tasks(execs: &[TaskExecution]) -> Vec<TaskInfo> {
     let mut dual_c0: HashMap<String, f64> = HashMap::new();
     let mut dual_c1: HashMap<String, f64> = HashMap::new();
 
+    // Zbiory służące do ignorowania pierwszej pętli (artefaktów startowych)
+    let mut single_seen = HashSet::new();
+    let mut dual_c0_seen = HashSet::new();
+    let mut dual_c1_seen = HashSet::new();
+
     for e in execs {
         let name = e.name.trim().to_string();
         let dur = e.duration_us() as f64;
 
         if name.ends_with("_0_d") {
             let base = name[..name.len() - 4].to_string();
-            dual_c0.entry(base).or_insert(dur);
+            if dual_c0_seen.contains(&base) {
+                // Zapisujemy dopiero DRUGIE wystąpienie
+                dual_c0.entry(base).or_insert(dur);
+            } else {
+                dual_c0_seen.insert(base);
+            }
         } else if name.ends_with("_1_d") {
             let base = name[..name.len() - 4].to_string();
-            dual_c1.entry(base).or_insert(dur);
+            if dual_c1_seen.contains(&base) {
+                dual_c1.entry(base).or_insert(dur);
+            } else {
+                dual_c1_seen.insert(base);
+            }
         } else {
-            single_map.entry(name).or_insert(dur);
+            if single_seen.contains(&name) {
+                single_map.entry(name).or_insert(dur);
+            } else {
+                single_seen.insert(name);
+            }
         }
     }
 
@@ -78,10 +96,12 @@ fn aggregate_tasks(execs: &[TaskExecution]) -> Vec<TaskInfo> {
     for k in single_map.keys() { all_bases.insert(k.clone()); }
     for k in dual_c0.keys() { all_bases.insert(k.clone()); }
 
-    let mut result = Vec::new();
-    for base in all_bases {
-        let p_single = *single_map.get(&base).unwrap_or(&f64::INFINITY);
+    let mut sorted_bases: Vec<String> = all_bases.into_iter().collect();
+    sorted_bases.sort();
 
+    let mut result = Vec::new();
+    for base in sorted_bases {
+        let p_single = *single_map.get(&base).unwrap_or(&f64::INFINITY);
         let d0 = dual_c0.get(&base);
         let d1 = dual_c1.get(&base);
         let p_dual = if let (Some(&v0), Some(&v1)) = (d0, d1) {
@@ -90,15 +110,22 @@ fn aggregate_tasks(execs: &[TaskExecution]) -> Vec<TaskInfo> {
             f64::INFINITY
         };
 
-        result.push(TaskInfo {
-            name: base,
-            p_single,
-            p_dual,
-            dual_measured: d0.is_some() && d1.is_some(),
-        });
+        let dual_measured = d0.is_some() && d1.is_some();
+
+        // Jeśli zadanie miało komplet pomiarów, rodzi DWA unikalne zadania w puli
+        if p_single.is_finite() && p_dual.is_finite() {
+            result.push(TaskInfo { name: base.clone(), p_single, p_dual, dual_measured });
+            result.push(TaskInfo { name: base.clone(), p_single, p_dual, dual_measured });
+        } else {
+            result.push(TaskInfo { name: base, p_single, p_dual, dual_measured });
+        }
     }
 
-    result.sort_by(|a, b| b.p_single.partial_cmp(&a.p_single).unwrap_or(std::cmp::Ordering::Equal));
+    // Stabilne sortowanie dla LPT
+    result.sort_by(|a, b| {
+        let cmp = b.p_single.partial_cmp(&a.p_single).unwrap_or(std::cmp::Ordering::Equal);
+        if cmp == std::cmp::Ordering::Equal { a.name.cmp(&b.name) } else { cmp }
+    });
     result
 }
 
@@ -152,7 +179,16 @@ fn cmax_of_split(tasks: &[TaskInfo], s1: &[usize], s2: &[usize]) -> f64 {
 pub fn greedy_spdp(execs: &[TaskExecution]) -> SchedulingResult {
     let t0 = Instant::now();
     let baseline = baseline_cmax(execs);
+    //let tasks = aggregate_tasks_for_algo(execs);
     let tasks = aggregate_tasks(execs);
+
+    println!("=== aggregate_tasks output ({} tasks) ===", tasks.len());
+    for (i, t) in tasks.iter().enumerate() {
+        println!("  [{}] name={:?} p_single={:.1} p_dual={:.1} dual_measured={}",
+                 i, t.name, t.p_single, t.p_dual, t.dual_measured);
+    }
+    println!("  baseline={:.1}", baseline);
+
     let n = tasks.len();
 
     let mut s1: Vec<usize> = (0..n).filter(|&i| !tasks[i].p_single.is_infinite()).collect();
@@ -188,6 +224,12 @@ pub fn greedy_spdp(execs: &[TaskExecution]) -> SchedulingResult {
 
     let s1_refs: Vec<&TaskInfo> = s1.iter().map(|&i| &tasks[i]).collect();
     let s2_refs: Vec<&TaskInfo> = s2.iter().map(|&i| &tasks[i]).collect();
+
+    println!("=== greedy_spdp split ===");
+    println!("  S1: {:?}", s1.iter().map(|&i| (&tasks[i].name, tasks[i].p_single)).collect::<Vec<_>>());
+    println!("  S2: {:?}", s2.iter().map(|&i| (&tasks[i].name, tasks[i].p_dual)).collect::<Vec<_>>());
+    println!("  cmax theoretical: {:.1}", cur);
+
     let (segs, cmax) = build_spdp_schedule(&s1_refs, &s2_refs);
 
     SchedulingResult {
@@ -205,7 +247,16 @@ pub fn greedy_spdp(execs: &[TaskExecution]) -> SchedulingResult {
 pub fn splitoff(execs: &[TaskExecution]) -> SchedulingResult {
     let t0 = Instant::now();
     let baseline = baseline_cmax(execs);
+    //let tasks = aggregate_tasks_for_algo(execs);
     let tasks = aggregate_tasks(execs);
+
+    println!("=== aggregate_tasks output ({} tasks) ===", tasks.len());
+    for (i, t) in tasks.iter().enumerate() {
+        println!("  [{}] name={:?} p_single={:.1} p_dual={:.1} dual_measured={}",
+                 i, t.name, t.p_single, t.p_dual, t.dual_measured);
+    }
+    println!("  baseline={:.1}", baseline);
+
     let n = tasks.len();
 
     let mut s1: Vec<usize> = (0..n).filter(|&i| !tasks[i].p_single.is_infinite()).collect();
@@ -265,7 +316,16 @@ pub fn splitoff(execs: &[TaskExecution]) -> SchedulingResult {
 pub fn duleung(execs: &[TaskExecution]) -> SchedulingResult {
     let t0 = Instant::now();
     let baseline = baseline_cmax(execs);
+    //let tasks = aggregate_tasks_for_algo(execs);
     let tasks = aggregate_tasks(execs);
+
+    println!("=== aggregate_tasks output ({} tasks) ===", tasks.len());
+    for (i, t) in tasks.iter().enumerate() {
+        println!("  [{}] name={:?} p_single={:.1} p_dual={:.1} dual_measured={}",
+                 i, t.name, t.p_single, t.p_dual, t.dual_measured);
+    }
+    println!("  baseline={:.1}", baseline);
+
     let n = tasks.len();
 
     if n > 30 {
